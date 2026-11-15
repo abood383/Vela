@@ -635,6 +635,7 @@ internal class NavController(
             )
         }
         voice.roadNameLatin = emptyMap()
+        app.vela.vehicle.SomeIpHud.roadNameLatin = emptyMap()
     }
 
     /** User panned the map during navigation → detach the follow-camera so they

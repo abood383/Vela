@@ -35,6 +35,27 @@ object ClusterMapPref {
     private const val KEY_DISPLAY = "cluster_map_display"
 }
 
+/**
+ * The cluster map's adb route (SPEC 10.9, The adb cluster route): reach a cluster display the
+ * firmware hides from apps through the car's own adb. Off by default, and offered only where no
+ * cluster display is visible to the app, so a car where the Presentation path works never sees it.
+ */
+object ClusterAdbPref {
+    val on = mutableStateOf(false)
+
+    fun init(context: Context) {
+        on.value = prefs(context).getBoolean(KEY_ON, false)
+    }
+
+    fun set(context: Context, value: Boolean) {
+        on.value = value
+        prefs(context).edit().putBoolean(KEY_ON, value).apply()
+    }
+
+    private fun prefs(c: Context) = c.getSharedPreferences("vela_settings", Context.MODE_PRIVATE)
+    private const val KEY_ON = "cluster_adb_on"
+}
+
 /** The windshield HUD (road-info frames to the glass over the SOME/IP gateway). */
 object SomeIpHudPref {
     val on = mutableStateOf(false)

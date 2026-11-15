@@ -245,6 +245,7 @@ class VelaApp : Application(), coil.ImageLoaderFactory {
         // accessibility service the user enables in Android Settings. Nothing here touches a car
         // display or a HAL on a phone or an unsupported head unit.
         app.vela.ui.ClusterMapPref.init(this)
+        app.vela.ui.ClusterAdbPref.init(this)
         app.vela.ui.FceClusterHudPref.init(this)
         app.vela.ui.SomeIpHudPref.init(this)
         app.vela.ui.TopActivity.register(this)

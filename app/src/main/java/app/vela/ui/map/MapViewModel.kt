@@ -7307,6 +7307,7 @@ class MapViewModel @Inject constructor(
         else _state.value.roadNameLatin + map
         if (merged.size == _state.value.roadNameLatin.size) return
         voice.roadNameLatin = merged
+        app.vela.vehicle.SomeIpHud.roadNameLatin = merged
         _state.update { it.copy(roadNameLatin = merged) }
     }
 

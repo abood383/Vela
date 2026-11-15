@@ -357,7 +357,11 @@ The **cluster map** draws Vela's real navigation map on the driver's instrument 
 drive. The cluster's projection area is an ordinary second display the car publishes, so Vela uses
 the standard Android `Presentation`, with no ADB and no special permission. The map is the same one
 the Android Auto code renders, reading the same navigation session, so the cluster, the phone and
-Android Auto all show one route, one turn and one distance. Turn it on under Settings > Navigation >
+Android Auto all show one route, one turn and one distance. A small box in the top-left corner of
+the cluster map shows the time left on top and the distance left with the arrival time below it, in
+the units the phone uses, in white
+on the same green as the phone's turn banner. The box turns red when you have fallen more than a
+couple of minutes behind the arrival time the drive started with, or traffic is heavy. Turn it on under Settings > Navigation >
 Instrument cluster and pick the display; the cluster shows it only while the car's own navigation
 view is on, which you switch on the car. When no drive is running, or the display goes away, the
 map comes down and the stock cluster returns.
@@ -370,7 +374,10 @@ the windshield HUD uses; the two are kept apart so neither can draw the other's 
 
 The **windshield head-up display** shows the turn arrow, distance, road and arrival time on the
 car's windshield glass. The arrow is Vela's own, sent as a small picture; the distance, road and
-time ride alongside it, refreshed about once a second so the glass does not blank. It uses the car's
+time ride alongside it, refreshed about once a second so the glass does not blank. Under the
+distance it shows the street to turn onto, as the phone's banner names it; at a highway exit, the
+exit number and where it goes ("Exit 12B · Folsom Blvd"); at a roundabout, which exit ("3rd exit ·
+Elm St"), since the glass's roundabout symbol is the same for every exit. It uses the car's
 own display service with no ADB and no extra permission, and does nothing on a car that has no such
 display. It is separate from the cluster paths above.
 
@@ -408,7 +415,11 @@ why something is unavailable. The debug export carries the same states and no ve
   and the steering-wheel voice button are built and bench-run but not yet seen on a car: the
   services probe correctly on both DiLink benches, but no windshield render and no wheel press has
   been seen, and the cluster-arrow service is absent on the benches and that car.
-- There is no ADB cluster fallback: a car with no public cluster display keeps the map on the phone.
+- Some firmware hides the cluster displays from apps. There, Settings shows "No cluster display
+  found on this device" and offers **Reach the cluster through debugging**, which opens the map on
+  the cluster through the car's own adb. It needs network debugging left on and a one-time "Allow
+  debugging?" approval on the car (that car's adbd accepted Vela's key without one). Seen on a
+  Leopard 8's cluster during a simulated drive, November 2026; not yet on a real drive.
 - Android Auto's guidance stream is 16 kHz mono, so every navigation voice sounds duller in the
   car than on the phone, Google's included. A head unit set to play prompts over the phone-call
   link makes it 8 kHz. No setting in Vela changes either.

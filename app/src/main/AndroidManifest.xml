@@ -253,6 +253,23 @@
              off until the user enables it in Android Settings, that repeats the current spoken
              instruction when the wheel's voice button is pressed during a drive. It reads no screen
              content (canRetrieveWindowContent=false). Guarded by BIND_ACCESSIBILITY_SERVICE. -->
+        <!-- The cluster map for the adb route (SPEC 10.9): on firmware that hides the cluster
+             displays from apps, the shell user starts this on the cluster display. Exported so the
+             shell can start it; it finishes with the cluster map off or no drive on, when still on
+             the default display after the move settles, and by itself when the drive ends. It
+             handles the move between displays itself (configChanges), so it is not recreated. -->
+        <activity
+            android:name=".vehicle.ClusterMapActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.cluster"
+            android:resizeableActivity="true"
+            android:screenOrientation="unspecified"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|density|uiMode|keyboard|keyboardHidden|navigation|touchscreen"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <service
             android:name=".vehicle.SteeringWheelService"
             android:exported="false"

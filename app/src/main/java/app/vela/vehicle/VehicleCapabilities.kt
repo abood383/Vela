@@ -11,8 +11,8 @@ import app.vela.core.vehicle.VehicleSupport
  * Nothing here probes aggressively or caches: it reads the display list and the service presence
  * at the moment it is asked, plus the live state the controllers already hold.
  *
- * What Vela does not implement is reported as such, not hidden: there is no ADB cluster fallback.
- * See SPEC 10.9.
+ * The adb cluster route is reported only as what it is on this head unit: not needed where the app
+ * sees a cluster display, otherwise off, waiting for the car's approval, or ready. See SPEC 10.9.
  */
 object VehicleCapabilities {
     @Volatile var clusterController: ClusterMapController? = null
@@ -35,8 +35,23 @@ object VehicleCapabilities {
             Line("FCE cluster HUD", fce?.support ?: if (FceCarPropertyTransport.available()) VehicleSupport.AVAILABLE else VehicleSupport.NOT_PRESENT),
             Line("Windshield HUD (SOME/IP)", someIpHud?.support ?: if (SomeIpHudTransport.available(context)) VehicleSupport.AVAILABLE else VehicleSupport.NOT_PRESENT),
             Line("Steering voice key", if (wheelOn) VehicleSupport.ACTIVE else VehicleSupport.AVAILABLE, if (wheelOn) "accessibility service enabled" else "enable in Android Settings"),
-            Line("ADB cluster fallback", VehicleSupport.NOT_IN_THIS_BUILD, "public display only"),
+            adbLine(cluster),
         )
+    }
+
+    /** The adb cluster route: offered only where the app sees no cluster display. */
+    private fun adbLine(cluster: ClusterMapController?): Line {
+        if (cluster == null) return Line("ADB cluster route", VehicleSupport.UNKNOWN)
+        if (!cluster.adbOffered()) return Line("ADB cluster route", VehicleSupport.NOT_PRESENT, "not needed: the cluster display is visible to the app")
+        if (!app.vela.ui.ClusterAdbPref.on.value) return Line("ADB cluster route", VehicleSupport.AVAILABLE, "off")
+        val state = when (cluster.adbState.value) {
+            ClusterMapController.AdbState.READY -> if (ClusterMapController.adbShowing) VehicleSupport.ACTIVE else VehicleSupport.AVAILABLE
+            ClusterMapController.AdbState.AWAITING_APPROVAL -> VehicleSupport.ACCESS_DENIED
+            ClusterMapController.AdbState.NO_ADB -> VehicleSupport.NOT_PRESENT
+            ClusterMapController.AdbState.FAILED -> VehicleSupport.FAILED
+            ClusterMapController.AdbState.OFF, ClusterMapController.AdbState.CONNECTING -> VehicleSupport.UNKNOWN
+        }
+        return Line("ADB cluster route", state, "${cluster.adbState.value.name.lowercase()}, displays=${cluster.adbTargets.value.size}")
     }
 
     /** One line for the diagnostics export. */

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import app.vela.R
 import app.vela.ui.settings.GroupDivider
@@ -23,6 +24,7 @@ import app.vela.ui.settings.Hint
 import app.vela.ui.settings.SelectableRow
 import app.vela.ui.settings.SettingsGroup
 import app.vela.ui.settings.ToggleRow
+import app.vela.vehicle.ClusterMapController
 import app.vela.vehicle.FceCarPropertyTransport
 import app.vela.vehicle.SomeIpHudTransport
 import app.vela.vehicle.SteeringWheelService
@@ -48,29 +50,41 @@ internal fun VehicleSettingsGroup() {
             hint = stringResource(R.string.settings_cluster_map_hint),
         )
         if (app.vela.ui.ClusterMapPref.on.value) {
-            val targets = VehicleCapabilities.clusterController?.targets().orEmpty()
+            val controller = VehicleCapabilities.clusterController
+            val targets = controller?.targets().orEmpty()
             if (targets.isEmpty()) {
                 Hint(stringResource(R.string.settings_cluster_map_none))
-            } else {
-                val chosen = app.vela.ui.ClusterMapPref.display.value
-                SelectableRow(
-                    label = stringResource(R.string.settings_cluster_map_display_auto),
-                    selected = chosen == null,
-                    onClick = {
-                        app.vela.ui.ClusterMapPref.setDisplay(context, null)
-                        VehicleCapabilities.clusterController?.onSettingChanged()
+                // Only here, where the app sees no cluster display, is the adb route offered. A car
+                // where the Presentation path works never shows this switch (SPEC 10.9).
+                ToggleRow(
+                    label = stringResource(R.string.settings_cluster_adb),
+                    checked = app.vela.ui.ClusterAdbPref.on.value,
+                    onCheckedChange = {
+                        app.vela.ui.ClusterAdbPref.set(context, it)
+                        if (it) controller?.adbRefresh()
+                        controller?.onSettingChanged()
                     },
+                    hint = stringResource(R.string.settings_cluster_adb_hint),
                 )
-                for (name in targets) {
-                    SelectableRow(
-                        label = name,
-                        selected = chosen == name,
-                        onClick = {
-                            app.vela.ui.ClusterMapPref.setDisplay(context, name)
-                            VehicleCapabilities.clusterController?.onSettingChanged()
-                        },
-                    )
+                if (app.vela.ui.ClusterAdbPref.on.value && controller != null) {
+                    val state = controller.adbState.value
+                    LaunchedEffect(Unit) {
+                        if (controller.adbState.value == ClusterMapController.AdbState.OFF) controller.adbRefresh()
+                    }
+                    Hint(stringResource(adbStatus(state)))
+                    val adbNames = controller.adbTargets.value
+                    if (state == ClusterMapController.AdbState.READY && adbNames.isNotEmpty()) {
+                        ClusterDisplayPicker(adbNames)
+                    } else if (state != ClusterMapController.AdbState.CONNECTING) {
+                        SelectableRow(
+                            label = stringResource(R.string.settings_cluster_adb_retry),
+                            selected = false,
+                            onClick = { controller.adbRefresh() },
+                        )
+                    }
                 }
+            } else {
+                ClusterDisplayPicker(targets)
             }
         }
         GroupDivider()
@@ -124,4 +138,37 @@ internal fun VehicleSettingsGroup() {
         )
     }
     Spacer(Modifier.height(8.dp))
+}
+
+/** "Choose automatically" and one row per cluster display name. */
+@Composable
+private fun ClusterDisplayPicker(names: List<String>) {
+    val context = LocalContext.current
+    val chosen = app.vela.ui.ClusterMapPref.display.value
+    SelectableRow(
+        label = stringResource(R.string.settings_cluster_map_display_auto),
+        selected = chosen == null,
+        onClick = {
+            app.vela.ui.ClusterMapPref.setDisplay(context, null)
+            VehicleCapabilities.clusterController?.onSettingChanged()
+        },
+    )
+    for (name in names) {
+        SelectableRow(
+            label = name,
+            selected = chosen == name,
+            onClick = {
+                app.vela.ui.ClusterMapPref.setDisplay(context, name)
+                VehicleCapabilities.clusterController?.onSettingChanged()
+            },
+        )
+    }
+}
+
+private fun adbStatus(state: ClusterMapController.AdbState): Int = when (state) {
+    ClusterMapController.AdbState.OFF, ClusterMapController.AdbState.CONNECTING -> R.string.settings_cluster_adb_connecting
+    ClusterMapController.AdbState.AWAITING_APPROVAL -> R.string.settings_cluster_adb_approve
+    ClusterMapController.AdbState.READY -> R.string.settings_cluster_adb_ready
+    ClusterMapController.AdbState.NO_ADB -> R.string.settings_cluster_adb_no_adb
+    ClusterMapController.AdbState.FAILED -> R.string.settings_cluster_adb_failed
 }

@@ -48,4 +48,26 @@ object SomeIpHudArrows {
             ManeuverType.UNKNOWN -> if (native) NO_GLYPH else NONE
         }
     }
+
+    /**
+     * The turn arrow that points where a roundabout exit leaves, for a glass whose roundabout glyph
+     * is one circle with a straight arrow whatever the exit (SPEC 10.9). From
+     * [app.vela.core.model.RoundaboutGeometry.exitAngleDeg], relative to the approach: within 30
+     * degrees of straight it keeps the roundabout id; to 60 the slight turns; to 150 the turns;
+     * beyond that the U-turn. Null when the maneuver is not a roundabout or has no geometry, so the
+     * caller keeps [of]. The HUD's text line carries "3rd exit", so the roundabout is still named.
+     */
+    fun roundaboutAsTurn(m: Maneuver?, table: Table, angleDeg: Double? = m?.roundabout?.exitAngleDeg): Int? {
+        if (m?.type != ManeuverType.ROUNDABOUT && m?.type != ManeuverType.EXIT_ROUNDABOUT) return null
+        val a = angleDeg ?: return null
+        val native = table == Table.NATIVE_ARROW
+        return when {
+            kotlin.math.abs(a) <= 30.0 -> null
+            a > 150.0 || a < -150.0 -> if (native) 7 else 9
+            a >= 60.0 -> 2
+            a <= -60.0 -> 1
+            a > 0 -> 5
+            else -> 3
+        }
+    }
 }

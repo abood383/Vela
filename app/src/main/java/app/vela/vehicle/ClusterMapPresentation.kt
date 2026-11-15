@@ -11,6 +11,11 @@ import android.view.SurfaceView
 import android.view.WindowManager
 import androidx.car.app.SurfaceContainer
 import app.vela.car.CarMapRenderer
+import app.vela.core.nav.NavSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 /**
  * Shows Vela's real navigation map on a BYD instrument-cluster display (SPEC 10.9). The cluster's
@@ -27,8 +32,10 @@ internal class ClusterMapPresentation(
     outerContext: Context,
     display: Display,
     private val renderer: CarMapRenderer,
+    private val navSession: NavSession,
 ) : Presentation(outerContext, display) {
     private var surfaceView: SurfaceView? = null
+    private var scope: CoroutineScope? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +60,17 @@ internal class ClusterMapPresentation(
             }
         })
         surfaceView = view
-        setContentView(view)
+        val box = ClusterTripBox(context)
+        setContentView(box.over(context, view))
+        val s = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        box.bind(s, navSession)
+        scope = s
+    }
+
+    override fun onStop() {
+        scope?.cancel()
+        scope = null
+        super.onStop()
     }
 
     private companion object { const val TAG = "VelaCluster" }

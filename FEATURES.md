@@ -353,7 +353,10 @@ These are off until you turn them on, each works on its own, and none has been c
 yet.
 
 - On a BYD head unit, Vela can draw its real navigation map on the driver's instrument cluster
-  while you drive, showing the same route as the phone.
+  while you drive, showing the same route as the phone, with the time left, distance left and
+  arrival time in a box in the top-left corner.
+- Where a BYD's firmware hides the cluster from apps, Vela can reach it through the car's own
+  debugging connection, after a one-time approval on the car.
 - On a BYD cluster that has its own built-in turn view, Vela can fill it with the turn arrow and
   distance instead.
 - On a BYD windshield head-up display, Vela can show the turn arrow, distance, road and arrival

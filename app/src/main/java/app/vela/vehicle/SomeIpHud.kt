@@ -115,7 +115,7 @@ class SomeIpHud(
             distanceSummary(s.remainingDistance),
             remainingTimeText(s.remainingDuration),
         ).joinToString(" · ").ifEmpty { null }
-        return SomeIpMapCard.Spec(maneuver.type, SomeIpMapCard.distanceText(s.nav.distanceToNextManeuver.toInt()), maneuver.road ?: maneuver.ref ?: "", remaining)
+        return SomeIpMapCard.Spec(maneuver.type, SomeIpMapCard.distanceText(s.nav.distanceToNextManeuver.toInt()), app.vela.core.vehicle.HudRoadText.of(maneuver), remaining)
     }
 
     private fun distanceSummary(meters: Double): String? {
@@ -123,17 +123,50 @@ class SomeIpHud(
         return if (meters >= 1000) String.format(Locale.US, "%.1f km", meters / 1000.0) else "${meters.toInt()} m"
     }
 
+    @Volatile private var lastLogged: String? = null
+
+    /** The maneuver with its local-script road names swapped for the basemap's Latin forms, the same
+     *  swap the banner makes ([SpokenScript.forDisplay]), always for a Latin reader: the glass draws
+     *  Latin only. A name with no Latin form keeps its script, and [HudRoadText] then leaves it out. */
+    private fun latinized(m: app.vela.core.model.Maneuver): app.vela.core.model.Maneuver {
+        val dict = roadNameLatin
+        if (dict.isEmpty()) return m
+        fun r(t: String) = app.vela.core.voice.SpokenScript.forDisplay(t, "en", dict)
+        return m.copy(instruction = r(m.instruction), road = m.road?.let(::r))
+    }
+
+    /** A roundabout's exit angle: its geometry, else measured on the route line (Google steps). */
+    private fun rbAngle(s: NavSession.State, m: app.vela.core.model.Maneuver): Double? {
+        if (m.type != app.vela.core.model.ManeuverType.ROUNDABOUT && m.type != app.vela.core.model.ManeuverType.EXIT_ROUNDABOUT) return null
+        val route = s.route ?: return m.roundabout?.exitAngleDeg
+        rbCache?.let { (k, v) -> if (k === m) return v }
+        val v = app.vela.core.vehicle.RoundaboutExitAngle.of(route.legs.flatMap { it.maneuvers }, m, route.polyline)
+        rbCache = m to v
+        return v
+    }
+
+    /** The last maneuver's angle, so the route line is scanned once per roundabout, not per frame. */
+    @Volatile private var rbCache: Pair<app.vela.core.model.Maneuver, Double?>? = null
+
     private fun buildFrame(s: NavSession.State, maneuver: app.vela.core.model.Maneuver, rich: Boolean): ByteArray {
         val dist = s.nav.distanceToNextManeuver.toInt()
-        val road = maneuver.road ?: maneuver.ref ?: ""
+        // adb-only probe (SPEC 10.9): `setprop debug.vela.tune.hudRoad "<text>"` replaces the road text.
+        val road = app.vela.ui.AppTune.text("hudRoad") ?: app.vela.core.vehicle.HudRoadText.of(latinized(maneuver))
+        // No place name in a log (CLAUDE.md, location hygiene): only the text's shape.
+        val shown = "type=${maneuver.type} dist=$dist roadChars=${road.length} roadBytes=${road.toByteArray().size} nonAscii=${road.any { it.code > 127 }} exitText=${road.startsWith("Exit ")} instrOnto=${maneuver.instruction.contains(" onto ")} instrExitNo=${app.vela.core.vehicle.HudRoadText.roundaboutExit(maneuver.instruction)} instrNonAscii=${maneuver.instruction.any { it.code > 127 }} storedExit=${maneuver.roundaboutExit} rbAngle=${rbAngle(s, maneuver)?.toInt()} latinNames=${roadNameLatin.size}"
+        if (shown != lastLogged) { lastLogged = shown; Log.d(TAG, "frame $shown") }
         val eta = etaFormat.format(Date(System.currentTimeMillis() + (s.remainingDuration * 1000).toLong()))
-        val png = arrowPng(maneuver)
+        val png = arrowPng(maneuver, rbAngle(s, maneuver))
         if (!rich) {
             return SomeIpHudFrame.guidance(SomeIpHudFrame.maneuverId(maneuver), dist, road, eta, png)
         }
         // Rich mode (dev dial): the stock-vocabulary id, real route progress and a world-anchored
         // guide line, all from Vela's own route and distance traveled. Still car-unverified.
-        val f28 = SomeIpHudArrows.of(maneuver, SomeIpHudArrows.Table.LAUNCHERMAP)
+        // adb-only probe (SPEC 10.9) for learning a glass's arrow vocabulary on a drive: a fixed
+        // arrow code (`setprop debug.vela.tune.hudArrow <n>`). Unset, the frame is unchanged.
+        val f28 = app.vela.ui.AppTune.local("hudArrow")?.toInt()?.takeIf { it > 0 }
+            ?: SomeIpHudArrows.roundaboutAsTurn(maneuver, SomeIpHudArrows.Table.LAUNCHERMAP, rbAngle(s, maneuver))
+            ?: SomeIpHudArrows.of(maneuver, SomeIpHudArrows.Table.LAUNCHERMAP)
         // The route's own polyline, which traveledM and distanceToNextManeuver are measured along
         // (NavEngine), NOT the display-only drawPolyline, or the car point would sit off the route.
         val poly = s.route?.polyline ?: emptyList()
@@ -181,15 +214,23 @@ class SomeIpHud(
 
     // Vela's own maneuver glyph on a transparent background, as PNG bytes. Null (empty field 8) if
     // it cannot be drawn; the frame still carries the maneuver id and the readouts.
-    private fun arrowPng(m: app.vela.core.model.Maneuver): ByteArray? = runCatching {
-        val bmp = app.vela.service.NavGlyphs.bitmap(m.type, GLYPH_PX, Color.TRANSPARENT)
+    private fun arrowPng(m: app.vela.core.model.Maneuver, rbAngle: Double? = null): ByteArray? = runCatching {
+        // A roundabout with a known exit gets its own picture with the exit where it leaves; the
+        // stock glyph is one circle with a straight arrow for every exit (SPEC 10.9). Traffic is
+        // taken as counter-clockwise when the route does not say (Google steps carry no geometry).
+        val bmp = if (rbAngle != null && (m.type == app.vela.core.model.ManeuverType.ROUNDABOUT || m.type == app.vela.core.model.ManeuverType.EXIT_ROUNDABOUT))
+            HudRoundaboutPicture.draw(rbAngle, m.roundabout?.clockwise ?: false, GLYPH_PX)
+        else app.vela.service.NavGlyphs.bitmap(m.type, GLYPH_PX, Color.TRANSPARENT)
         ByteArrayOutputStream().use { out -> bmp.compress(Bitmap.CompressFormat.PNG, 100, out); out.toByteArray() }
     }.getOrNull()
 
-    private companion object {
-        const val TAG = "VelaSomeIp"
-        const val GLYPH_PX = 128
+    companion object {
+        /** Local road name to its Latin form, filled as nav tiles load (MapViewModel.onNavRoadLatin)
+         *  and cleared when a drive ends; the banner and the voice read the same table. */
+        @Volatile var roadNameLatin: Map<String, String> = emptyMap()
+        private const val TAG = "VelaSomeIp"
+        private const val GLYPH_PX = 128
         /** adb-only dev dial (`setprop debug.vela.tune.hudRich 1`) for the car-unverified rich frame. */
-        const val DIAL_RICH = "hudRich"
+        private const val DIAL_RICH = "hudRich"
     }
 }

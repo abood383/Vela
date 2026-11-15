@@ -380,6 +380,14 @@
     <string name="settings_cluster_map_display">Cluster display</string>
     <string name="settings_cluster_map_display_auto">Choose automatically</string>
     <string name="settings_cluster_map_none">No cluster display found on this device.</string>
+    <string name="settings_cluster_adb">Reach the cluster through debugging</string>
+    <string name="settings_cluster_adb_hint">Some cars hide the cluster display from apps. With network debugging on in the car, Vela can open its map on the cluster through the car\'s own debugging connection. The car asks once to allow Vela; tick Always allow.</string>
+    <string name="settings_cluster_adb_connecting">Connecting to the car\'s debugging service…</string>
+    <string name="settings_cluster_adb_approve">Allow Vela on the car\'s screen: tap Allow and tick Always allow, then tap Try again.</string>
+    <string name="settings_cluster_adb_ready">Connected. Pick the cluster display below.</string>
+    <string name="settings_cluster_adb_no_adb">The car\'s debugging service is not reachable. Turn on network debugging (port 5555) in the car\'s developer options, then tap Try again.</string>
+    <string name="settings_cluster_adb_failed">The car refused to open the map on the cluster. Tap Try again, or turn this off.</string>
+    <string name="settings_cluster_adb_retry">Try again</string>
     <string name="settings_cluster_hud">Turn arrows on the cluster</string>
     <string name="settings_cluster_hud_hint">Send the turn arrow and distance to the cluster\'s built-in navigation view on a car that supports it. Independent of the map above.</string>
     <string name="settings_cluster_hud_absent">This head unit does not offer the cluster navigation service.</string>

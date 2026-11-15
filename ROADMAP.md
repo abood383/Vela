@@ -270,6 +270,9 @@ off the list when it has been.
   ahead of time (`NavEngine.upcomingPrompts`).
 - The next stop on Android Auto, and the trip's own time beside it. Built, not run on the
   Desktop Head Unit.
+- The BYD adb cluster route (SPEC 10.9, The adb cluster route). Seen on a Leopard 8's cluster
+  during a simulated drive, with the cluster in its map view. Not yet seen on a real drive, and the
+  "Allow debugging?" prompt has not appeared on a car (that car's adbd accepted the key without one).
 - The BYD cluster turn arrows over the FCE vehicle HAL (SPEC 10.9). The property writes, the glyph
   table and the state transitions are unit-tested, and the service is correctly absent on both
   benches, so the write path has never run against a real HAL. Needs a car that has the service.

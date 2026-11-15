@@ -26,6 +26,14 @@ object ClusterTargets {
         return if (anyPresentation) known + names.filter { it !in known } else known
     }
 
+    /**
+     * The order for the adb route. On the firmware that hides these displays from apps, the
+     * cluster's map view shows `_0`, where the stock cluster map runs, and keeps `_1` at 1 by 1
+     * pixel, so `_0` is offered first. Measured on a Leopard 8 (DiLink 5.1), November 2026.
+     */
+    fun adbCandidates(names: List<String>): List<String> =
+        listOf(DILINK5_FULL, DILINK5_SIDE, DILINK4).filter { it in names }
+
     /** The display to draw on: the one the user picked, and only while it exists. A name that is
      *  briefly gone (a cluster mode change restarts the container service) casts nothing rather
      *  than the next display on the list, which can be the passenger screen. */
@@ -37,10 +45,10 @@ object ClusterTargets {
 enum class ClusterRoute { PRESENTATION, ADB, NONE }
 
 /**
- * The public display comes first, always. The adb route is a fallback for a head unit with no
- * public cluster display, so a failing Presentation on a display that exists never falls through
- * to it. Vela has no adb route ([adbRoute] is false in every build), so today the answer is
- * [ClusterRoute.PRESENTATION] or [ClusterRoute.NONE].
+ * The public display comes first, always. The adb route is a fallback for a head unit whose
+ * firmware hides the cluster displays from apps, so a failing Presentation on a display that exists
+ * never falls through to it. [adbRoute] is true only when the driver turned the route on and the app
+ * sees no cluster display of its own.
  */
 fun clusterRoute(publicDisplay: Boolean, adbRoute: Boolean): ClusterRoute = when {
     publicDisplay -> ClusterRoute.PRESENTATION

@@ -60,4 +60,24 @@ class SomeIpHudArrowsTest {
             assertNotEquals(type.name, FceIcons.of(m(type)), SomeIpHudArrows.of(m(type), Table.LAUNCHERMAP))
         }
     }
+
+    private fun rb(angle: Double?) = Maneuver(
+        ManeuverType.ROUNDABOUT, "", LatLng(38.5449, -121.7405), 0.0, 0.0,
+        roundabout = angle?.let { RoundaboutGeometry(it, false) },
+    )
+
+    @Test fun `a roundabout exit is drawn as the turn it makes`() {
+        assertEquals(null, SomeIpHudArrows.roundaboutAsTurn(rb(10.0), Table.LAUNCHERMAP)) // straight: keep the roundabout glyph
+        assertEquals(2, SomeIpHudArrows.roundaboutAsTurn(rb(90.0), Table.LAUNCHERMAP))
+        assertEquals(1, SomeIpHudArrows.roundaboutAsTurn(rb(-95.0), Table.LAUNCHERMAP))
+        assertEquals(5, SomeIpHudArrows.roundaboutAsTurn(rb(45.0), Table.LAUNCHERMAP))
+        assertEquals(3, SomeIpHudArrows.roundaboutAsTurn(rb(-45.0), Table.LAUNCHERMAP))
+        assertEquals(9, SomeIpHudArrows.roundaboutAsTurn(rb(175.0), Table.LAUNCHERMAP))
+        assertEquals(7, SomeIpHudArrows.roundaboutAsTurn(rb(-170.0), Table.NATIVE_ARROW))
+        assertEquals(null, SomeIpHudArrows.roundaboutAsTurn(rb(null), Table.LAUNCHERMAP))
+        assertEquals(null, SomeIpHudArrows.roundaboutAsTurn(m(ManeuverType.TURN_LEFT), Table.LAUNCHERMAP))
+        // A Google roundabout has no geometry; the angle measured on the route line is passed in.
+        assertEquals(1, SomeIpHudArrows.roundaboutAsTurn(rb(null), Table.LAUNCHERMAP, angleDeg = -88.0))
+        assertEquals(1, SomeIpHudArrows.roundaboutAsTurn(m(ManeuverType.EXIT_ROUNDABOUT), Table.LAUNCHERMAP, angleDeg = -88.0))
+    }
 }

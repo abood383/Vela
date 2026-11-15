@@ -5846,16 +5846,60 @@ presentation display, for an emulator.
 The map is the same `CarMapRenderer` Android Auto uses (10.6), reading the one `NavSession`, so the
 cluster, the phone and Android Auto show one route, maneuver and distance. The renderer takes a
 plain `Context` so it can host a surface of Vela's own; its speed badge is off on the cluster,
-which has its own. It renders only while a drive is on and is torn down when the drive ends or the
+which has its own. A box in the top-left corner (`ClusterTripBox`, on both the Presentation and the
+adb route) shows the time left centered on the top row and, below it, the distance left and the
+arrival clock time ("12.4 km · 14:32"), from `remainingDuration` and `remainingDistance` through
+the phone's `formatDuration`, `formatDistance` and `formatClock`, so it follows the unit and 12/24
+hour settings. It is styled like the phone's turn banner: white text on the banner green
+(`#00654F`) while the drive is on track, on red (`#D93838`) when it is behind or delayed
+(`ClusterEta`): behind means the arrival time has slipped past the one the drive
+started with by more than 2 min or 5 % of the planned trip, whichever is larger; delayed means a
+traffic ratio past 1.4, the phone's own red threshold. The baseline is kept per destination (about
+100 m cells), so a reroute keeps it and a new destination resets it. It redraws only when the
+shown text or color changes and hides when no drive is on. Text is 21 sp (time) and 15 sp
+(distance). It renders only while a drive is on and is torn down when the drive ends or the
 display goes away (a `DisplayManager.DisplayListener`). The Presentation is hosted from the top
 Activity (`TopActivity`), because a Presentation built from the application context can be refused
 a window token. The cluster shows this display only while its own navigation view is on, which the
 app cannot switch; the driver turns that on.
 
-Routing precedence (`clusterRoute`): the public display first, always. There is no ADB fallback in
-this build (no `AdbClusterRouter`), so a head unit with no public cluster display keeps phone-only
-navigation and the capability reads NOT_PRESENT. A Presentation refused on a display that exists
-reads ACCESS_DENIED and never silently falls back.
+Routing precedence (`clusterRoute`): the public display first, always. The adb route is used only
+when the app sees no cluster display of its own and the driver has turned it on. A Presentation
+refused on a display that exists reads ACCESS_DENIED and never falls back to adb.
+
+#### The adb cluster route
+
+Some DiLink 5.1 firmware hides the container's cluster displays from apps. On a Leopard 8 in
+November 2026, `DisplayManagerGlobal.getDisplayIds` returned `ivi` and `fse` to the app uid and all
+five displays (adding `fission_bg_XDJAScreenProjection` and `shared_..._0` and `_1`) to the shell
+uid, with the cluster displays flagged `FLAG_PRESENTATION` only, not private. Network debugging on
+or off does not change what the app sees.
+
+The route reaches those displays as the shell user through the head unit's own adbd:
+
+- `LocalAdb` (`:app`) connects to `127.0.0.1:5555`, signs adbd's token with Vela's 2048-bit RSA key
+  (no-backup storage, `vela_adbkey`), and offers the public key when adbd does not know it, which
+  shows the car's "Allow debugging?" prompt. One connection per command. `AdbWire` (`:core`) holds
+  the framing, the mincrypt public key format, the SHA-1 DigestInfo padding and the display list
+  parser, all unit-tested.
+- `dumpsys display | grep mBaseDisplayInfo` lists the shell user's displays;
+  `ClusterTargets.adbCandidates` keeps the known cluster names with `_0` first. On that car the
+  cluster's map view composites `_0`, where the stock cluster map runs, and holds `_1` at 1 by 1;
+  Vela's window on `_0` sits above the stock map and was seen on the cluster.
+- When a drive starts, `am start --display <id> -f 0x18000000 -n <pkg>/app.vela.vehicle.ClusterMapActivity`
+  opens the map on the chosen display, once per drive. `ClusterMapActivity` is exported so the shell
+  can start it. It declines unless the launch carries the cluster display id
+  (`--ei app.vela.cluster.DISPLAY <id>`, which only the controller sets), the cluster map is on and
+  a drive is running, and it finishes by itself when the drive ends, so teardown needs no second adb
+  call. It does not trust its own display id: BYD's window manager creates it on display 0 and moves
+  it, and `Activity.getDisplay` and the decor view's display both kept reporting 0 after the move.
+  It handles the move itself (`configChanges`).
+
+Settings offers the switch ("Reach the cluster through debugging", `ClusterAdbPref`, off) only
+under "No cluster display found on this device", so a car where the Presentation path works never
+shows it. With it on, the picker lists the names the shell user sees. States: OFF, CONNECTING,
+AWAITING_APPROVAL, READY, NO_ADB (nothing listening on 5555), FAILED (adbd or `am` refused).
+The route needs network debugging left on in the car.
 
 #### The windshield HUD transports
 
@@ -5984,6 +6028,42 @@ whether that matters, and whether a real map rather than a card is needed, is a 
 drive settles (the only map-window render on record is a third-party result on one car, and the Denza
 N9 renderer does not read the field). Off by default with the rest of the rich frame.
 
+#### The windshield road text
+
+The road field (f10) is `HudRoadText.of(maneuver)`, as the phone's banner reads it: for a highway
+exit, the exit number and the step's "toward" sign ("Exit 12B · Folsom Blvd"); at a roundabout,
+the ordinal exit and the road ("3rd exit · Elm St"); otherwise the road entered. The road name is
+taken from the step instruction first ("... onto Elm St"), then the maneuver's road, then its ref,
+because a map-matched road can be in the local script while the instruction is in the app language.
+A name with letters outside Latin script is left out, and Street, Road, Avenue, Boulevard, Highway
+and Drive are shortened, because that glass drew Latin text only and about nine characters wide
+(the first nine characters of a longer name), so the exit comes first. The roundabout exit is the maneuver's
+`roundaboutExit`, else read from the instruction ("take the 3rd exit", "third exit"). Before that,
+the instruction and road are romanized with the banner's own table (`SpokenScript.forDisplay` over
+`roadNameLatin`, the basemap's name:en or name:latin, shared with `SomeIpHud.roadNameLatin`), so a
+turn onto a street the map names in Arabic shows its English name, as the banner does. Invisible
+direction marks are stripped.
+On a Leopard 8 (DiLink 5.1), November 2026, in rich mode: the glass drew field 10 under the
+distance for a 21-byte Latin name and showed nothing for the 60-byte Arabic road of the same turn,
+and it drew its own arrow glyph from field 28, ignoring the field-8 picture. Its roundabout glyph
+(code 13) is one circle with a straight arrow whatever the exit; code 15 drew a left arrow, and a
+short sweep of codes 12 to 60 identified no per-exit glyph, so the exit is carried in the text. In
+rich mode the arrow for a roundabout follows its exit (`SomeIpHudArrows.roundaboutAsTurn`, from
+`exitAngleDeg`): within 30 degrees of straight the roundabout id stays; to 60 degrees the slight
+turns; to 150 the left or right turn; beyond that the U-turn. The minimal frame keeps the stock ids.
+Google steps carry no roundabout geometry, so the angle is measured on the route line
+(`RoundaboutExitAngle`: the bearing over the last 30 m before the entry against the first 30 m after
+the exit step). That glass draws a roundabout from the field-8 picture, not field 28: it kept the
+stock circle-with-straight-arrow picture while field 28 said left. So the picture for a roundabout
+with a known angle is `HudRoundaboutPicture`: the entry from the bottom, a thick arc round to the
+exit, the rest of the ring thin, and an arrow out at the angle; traffic is taken as
+counter-clockwise when the route does not say. The patterns are English; an instruction
+that does not match falls back to the road. The 200-byte cap still applies.
+
+Two adb-only dials help learn another glass on a drive: `debug.vela.tune.hudArrow <n>` sends a
+fixed field-28 code, and `debug.vela.tune.hudRoad "<text>"` replaces the road text. The HUD logs
+each frame's maneuver type, distance and the road text's length and script, never the name.
+
 #### No-ADB reachability of each cluster and HUD transport
 
 What each BYD navigation output needs, and whether Vela (no ADB, no root, no platform signature)
@@ -6035,8 +6115,8 @@ caches nothing and probes nothing aggressively. Settings > Diagnostics shows one
 display list (the `vehicle` field). No analytics, no telemetry, no backend, no vehicle identifier
 and no position: capability names and display names only.
 
-Reported NOT_IN_THIS_BUILD rather than hidden, because the piece is understood but Vela does not
-act on it: the ADB cluster fallback.
+The adb cluster route line reads NOT_PRESENT ("not needed") where the app sees a cluster display,
+and otherwise follows the route's state.
 
 The four controllers (cluster map, FCE cluster HUD, SOME/IP windshield HUD, and the capability
 read) start in `VelaApp` on a process-long scope and follow the shared `NavSession`; the
