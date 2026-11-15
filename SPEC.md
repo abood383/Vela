@@ -6000,10 +6000,12 @@ limit is car-side. The ETA in field 26 is sent by the reference too; it is pinne
 yet confirmed on a drive. U-turns send id 7 (right-hand traffic); the reference splits 7 and 8 by
 driving side, which Vela's maneuver model carries no field to express.
 
-A richer road frame is built behind an adb-only dev dial (`debug.vela.tune.hudRich`, default off), to
-match what a known-good third-party sender publishes on a car where the minimal frame leaves the glass
-dark. It is car-unverified and off by default, so the bench-verified frame above is byte-identical
-unless the dial is set. When on, `SomeIpHudFrame.guidanceRich` adds, from Vela's own route and
+A richer road frame is sent when Settings > Navigation > Instrument cluster > "Detailed windshield
+guidance" is on (`SomeIpHudPref.detailed`, stored as `someip_hud_detailed`, default off, offered
+while the windshield display is on), or when the adb dial `debug.vela.tune.hudRich` forces it. It
+matches what a known-good third-party sender publishes. It was seen on a Leopard 8 (see The
+windshield road text); off by default because no other car has been checked, so the bench-verified
+frame above is byte-identical unless it is turned on. When on, `SomeIpHudFrame.guidanceRich` adds, from Vela's own route and
 distance traveled: the remaining route (fields 3 and 4) and its time text (field 27), the route
 progress (field 33), the route-snapped vehicle point (fields 19 and 20) and its heading (field 32), a
 world-anchored guide line clipped from the car to 120 m past the maneuver (field 30,

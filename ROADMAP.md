@@ -295,15 +295,11 @@ off the list when it has been.
   receiver delivers the same register without ADB but is a debug channel and is not shipped, so the
   Leopard 7 arrow stays out of scope. Needs a
   car whose glass takes the SOME/IP frame to confirm the render.
-- The richer SOME/IP road frame behind the `hudRich` dev dial (SPEC 10.9): real remaining route,
-  progress, route-snapped position, heading, a world-anchored guide line and the maneuver point, from
-  Vela's own route, plus the stock field-28 vocabulary and a 500 ms resend. Built to match a
-  known-good third-party sender on cars where the minimal frame leaves the glass dark. Byte-tested
-  (`SomeIpHudRichTest`), default off, car-unverified. In rich mode the 0x8003 map window is also sent:
-  a 300 by 180 maneuver card (`SomeIpMapCard`, not a live map), rendered off the main thread and
-  resent on the keepalive, black on clear. The only map-window render on record is a third-party
-  result on one car and the Denza N9 renderer does not read the field, so its value is unproven. Needs
-  a car with the glass to tell whether any of the rich frame lights a dark HUD.
+- The richer SOME/IP road frame, now the "Detailed windshield guidance" setting (SPEC 10.9; the
+  `hudRich` dial still forces it). On a Leopard 8 (DiLink 5.1) the glass drew field 10 (the road
+  text, Latin only, about nine characters), its own arrow from field 28, and for a roundabout the
+  field-8 picture. The 0x8003 maneuver card is still sent; whether that glass shows it is not known.
+  Not yet seen on any other car, which is why the setting is off by default.
 - The BYD steering-wheel voice button repeating the current direction (SPEC 10.9). The key router
   is unit-tested; no wheel press has reached the filter. Needs a car, and the accessibility
   service enabled, with a drive on. `adb shell input keyevent` does not exercise the filter.

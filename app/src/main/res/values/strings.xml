@@ -393,6 +393,8 @@
     <string name="settings_cluster_hud_absent">This head unit does not offer the cluster navigation service.</string>
     <string name="settings_windshield_hud">Windshield head-up display</string>
     <string name="settings_windshield_hud_hint">Send the turn arrow, distance, road and arrival time to the car\'s windshield display while you drive, on a car that has one.</string>
+    <string name="settings_windshield_detailed">Detailed windshield guidance</string>
+    <string name="settings_windshield_detailed_hint">Also show the street to turn onto, the exit number and a roundabout picture with its exit on the windshield. Turn this off if your windshield display goes blank.</string>
     <string name="settings_windshield_hud_absent">This head unit does not offer the windshield display service.</string>
     <string name="settings_credits">Credits</string>
     <string name="settings_credits_line" translatable="false">Vela BYD, the BYD edition of Vela, by Sheikh Talal Zaki, Abdulla Al Hosani and Khaled Wasel. Built on Vela by PimpinPumpkin (GPLv3).</string>

@@ -379,7 +379,9 @@ distance it shows the street to turn onto, as the phone's banner names it; at a 
 exit number and where it goes ("Exit 12B · Folsom Blvd"); at a roundabout, which exit ("3rd exit ·
 Elm St"), since the glass's roundabout symbol is the same for every exit. Where Google calls a
 roundabout a plain turn, Vela recognizes it from the shape of the route line, and the banner and
-the HUD show it as a roundabout with its exit. It uses the car's
+the HUD show it as a roundabout with its exit. The street name, exit number and roundabout picture
+need **Detailed windshield guidance**, a switch under the windshield display setting; without it the
+glass gets the turn arrow and distance only. Turn it off if a car's windshield goes blank with it. It uses the car's
 own display service with no ADB and no extra permission, and does nothing on a car that has no such
 display. It is separate from the cluster paths above.
 

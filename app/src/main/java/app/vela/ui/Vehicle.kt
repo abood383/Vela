@@ -59,9 +59,13 @@ object ClusterAdbPref {
 /** The windshield HUD (road-info frames to the glass over the SOME/IP gateway). */
 object SomeIpHudPref {
     val on = mutableStateOf(false)
+    /** The rich frame (SPEC 10.9): street names, exit numbers and the roundabout picture, for a
+     *  glass that draws them. Off by default; the adb dial `hudRich` still forces it on. */
+    val detailed = mutableStateOf(false)
 
     fun init(context: Context) {
         on.value = prefs(context).getBoolean(KEY, false)
+        detailed.value = prefs(context).getBoolean(KEY_DETAILED, false)
     }
 
     fun set(context: Context, value: Boolean) {
@@ -69,8 +73,14 @@ object SomeIpHudPref {
         prefs(context).edit().putBoolean(KEY, value).apply()
     }
 
+    fun setDetailed(context: Context, value: Boolean) {
+        detailed.value = value
+        prefs(context).edit().putBoolean(KEY_DETAILED, value).apply()
+    }
+
     private fun prefs(c: Context) = c.getSharedPreferences("vela_settings", Context.MODE_PRIVATE)
     private const val KEY = "someip_hud_on"
+    private const val KEY_DETAILED = "someip_hud_detailed"
 }
 
 /** The FCE cluster HUD (vendor vehicle properties on head units that have the FCE HAL). */

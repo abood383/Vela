@@ -112,6 +112,19 @@ internal fun VehicleSettingsGroup() {
         if (app.vela.ui.SomeIpHudPref.on.value && !SomeIpHudTransport.available(context)) {
             Hint(stringResource(R.string.settings_windshield_hud_absent))
         }
+        // The rich frame: street names, exit numbers and roundabout pictures, for a glass that
+        // draws them. Offered while the windshield display is on (SPEC 10.9).
+        if (app.vela.ui.SomeIpHudPref.on.value) {
+            ToggleRow(
+                label = stringResource(R.string.settings_windshield_detailed),
+                checked = app.vela.ui.SomeIpHudPref.detailed.value,
+                onCheckedChange = {
+                    app.vela.ui.SomeIpHudPref.setDetailed(context, it)
+                    VehicleCapabilities.someIpHud?.onSettingChanged()
+                },
+                hint = stringResource(R.string.settings_windshield_detailed_hint),
+            )
+        }
         GroupDivider()
         // The steering-wheel voice key. An app cannot turn its own accessibility service on, so the
         // switch reflects the system state and tapping it opens the system screen that does.

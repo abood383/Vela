@@ -100,7 +100,7 @@ class SomeIpHud(
         }
         val t = ensureTransport() ?: return
         clearedOnce = false
-        val rich = app.vela.ui.AppTune.localOn(DIAL_RICH)
+        val rich = app.vela.ui.SomeIpHudPref.detailed.value || app.vela.ui.AppTune.localOn(DIAL_RICH)
         lastRich = rich
         val frame = runCatching { buildFrame(s, maneuver!!, rich) }.getOrNull() ?: return
         val mapSpec = if (rich) mapCardSpec(s, maneuver!!) else null
@@ -242,7 +242,8 @@ class SomeIpHud(
         @Volatile var roadNameLatin: Map<String, String> = emptyMap()
         private const val TAG = "VelaSomeIp"
         private const val GLYPH_PX = 128
-        /** adb-only dev dial (`setprop debug.vela.tune.hudRich 1`) for the car-unverified rich frame. */
+        /** adb-only dev dial (`setprop debug.vela.tune.hudRich 1`) that forces the rich frame on,
+         *  whatever the "Detailed windshield guidance" setting says. */
         private const val DIAL_RICH = "hudRich"
     }
 }
