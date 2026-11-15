@@ -32,7 +32,7 @@ object HudRoadText {
         val onto = ONTO.find(m.instruction)?.groupValues?.get(1)
         val road = listOf(onto, m.road, m.ref).firstNotNullOfOrNull { drawable(it) }
         val sign = drawable(TOWARD.find(m.instruction)?.groupValues?.get(1))
-        val roundabout = m.type == ManeuverType.ROUNDABOUT || m.type == ManeuverType.EXIT_ROUNDABOUT ||
+        val roundabout = m.type == ManeuverType.ROUNDABOUT || m.type == ManeuverType.EXIT_ROUNDABOUT || m.roundabout != null ||
             m.instruction.contains("roundabout", ignoreCase = true)
         val exitNo = m.roundaboutExit ?: roundaboutExit(m.instruction)
         if (roundabout && exitNo != null) return join("${ordinal(exitNo)} exit", road ?: sign)

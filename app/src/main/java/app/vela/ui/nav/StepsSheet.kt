@@ -723,4 +723,4 @@ private val NEUTRAL_ROUNDABOUT: ImageVector by lazy { roundaboutGlyph(null) }
  *  gave us the bearings to derive them (issue #259). Prefer this wherever the Maneuver is in hand. */
 @androidx.compose.runtime.Composable
 fun maneuverIconFor(m: app.vela.core.model.Maneuver): ImageVector =
-    if (isRoundabout(m.type)) rememberRoundaboutGlyph(m.roundabout) else maneuverIcon(m.type)
+    if (isRoundabout(m.type) || m.roundabout != null) rememberRoundaboutGlyph(m.roundabout) else maneuverIcon(m.type)

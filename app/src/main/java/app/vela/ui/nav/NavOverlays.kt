@@ -297,7 +297,7 @@ fun ManeuverBanner(
                             .graphicsLayer { rotationZ = angle },
                     )
                 } else Icon(
-                    if (isRoundabout(type)) rememberRoundaboutGlyph(roundabout) else maneuverIcon(type),
+                    if (isRoundabout(type) || roundabout != null) rememberRoundaboutGlyph(roundabout) else maneuverIcon(type),
                     contentDescription = null,
                     modifier = Modifier.size(if (compact) 36.dp else 54.dp),
                 )
@@ -427,7 +427,7 @@ fun ManeuverBanner(
                     Text(stringResource(R.string.nav_compound_then).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.width(8.dp))
                     Icon(
-                        if (isRoundabout(nextType)) rememberRoundaboutGlyph(nextRoundabout) else maneuverIcon(nextType),
+                        if (isRoundabout(nextType) || nextRoundabout != null) rememberRoundaboutGlyph(nextRoundabout) else maneuverIcon(nextType),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                     )

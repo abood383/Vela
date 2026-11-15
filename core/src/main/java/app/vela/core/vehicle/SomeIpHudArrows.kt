@@ -58,7 +58,7 @@ object SomeIpHudArrows {
      * caller keeps [of]. The HUD's text line carries "3rd exit", so the roundabout is still named.
      */
     fun roundaboutAsTurn(m: Maneuver?, table: Table, angleDeg: Double? = m?.roundabout?.exitAngleDeg): Int? {
-        if (m?.type != ManeuverType.ROUNDABOUT && m?.type != ManeuverType.EXIT_ROUNDABOUT) return null
+        if (m == null || (m.type != ManeuverType.ROUNDABOUT && m.type != ManeuverType.EXIT_ROUNDABOUT && m.roundabout == null)) return null
         val a = angleDeg ?: return null
         val native = table == Table.NATIVE_ARROW
         return when {

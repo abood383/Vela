@@ -270,6 +270,9 @@ off the list when it has been.
   ahead of time (`NavEngine.upcomingPrompts`).
 - The next stop on Android Auto, and the trip's own time beside it. Built, not run on the
   Desktop Head Unit.
+- Roundabouts read off the route line (SPEC 10.9, Roundabouts on the route line). Seen on one drive
+  (a roundabout Google called a left turn drew as a roundabout on the banner and the HUD); false
+  positives on real roads not yet looked for beyond that drive.
 - The BYD adb cluster route (SPEC 10.9, The adb cluster route). Seen on a Leopard 8's cluster
   during a simulated drive, with the cluster in its map view. Not yet seen on a real drive, and the
   "Allow debugging?" prompt has not appeared on a car (that car's adbd accepted the key without one).

@@ -6028,6 +6028,27 @@ whether that matters, and whether a real map rather than a card is needed, is a 
 drive settles (the only map-window render on record is a third-party result on one car, and the Denza
 N9 renderer does not read the field). Off by default with the rest of the rich frame.
 
+#### Roundabouts on the route line
+
+Google often calls a small roundabout, or one left at its first or last exit, a plain turn, and its
+roundabout steps carry no geometry. `RoundaboutDetect.annotate` (`:core`) adds
+`Maneuver.roundabout` where the route line shows one. It runs in `DirectionsParser`, on every route
+`GoogleMapsDataSource.directions` returns, and again on what `nameRoute` returns, because naming
+rebuilds the steps (a `GOOGLE_LINE_NAMED` route had lost the parser's geometry). Between the
+previous and the next step (12 m short of each, at most 70 m before and 200 m after the step;
+a roundabout step's window runs 40 m past its exit step), the line is resampled every 4 m and its
+turning summed. A step is a roundabout when the total turning exceeds the net turn by at least
+100 degrees and each direction turns at least 35 degrees: the veer to enter and the curve round the
+ring. The exit angle is the net turn; the ring circulates the way the larger share of the turning
+goes. A Google roundabout step always gets geometry, and its exit step takes the same. Only display
+reads the geometry: the banner, the steps list and the HUD draw the roundabout glyph for any step
+that has it, and the step's type and instruction are unchanged, so the voice still says what
+Google said. The HUD logs, once per step, what the detector measures there (`rbProbe`: the
+route source, whether the step has geometry, total left and right turning, the excess and the
+window length), angles and meters only. On a Leopard 8 drive, November 2026, a roundabout Google
+called a left turn read as a -117 degree exit, and the plain right turn after it as right 107,
+left 1, excess 2.
+
 #### The windshield road text
 
 The road field (f10) is `HudRoadText.of(maneuver)`, as the phone's banner reads it: for a highway

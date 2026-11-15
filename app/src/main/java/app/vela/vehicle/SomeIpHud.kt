@@ -124,6 +124,7 @@ class SomeIpHud(
     }
 
     @Volatile private var lastLogged: String? = null
+    @Volatile private var lastProbed: app.vela.core.model.Maneuver? = null
 
     /** The maneuver with its local-script road names swapped for the basemap's Latin forms, the same
      *  swap the banner makes ([SpokenScript.forDisplay]), always for a Latin reader: the glass draws
@@ -137,6 +138,7 @@ class SomeIpHud(
 
     /** A roundabout's exit angle: its geometry, else measured on the route line (Google steps). */
     private fun rbAngle(s: NavSession.State, m: app.vela.core.model.Maneuver): Double? {
+        m.roundabout?.let { return it.exitAngleDeg }
         if (m.type != app.vela.core.model.ManeuverType.ROUNDABOUT && m.type != app.vela.core.model.ManeuverType.EXIT_ROUNDABOUT) return null
         val route = s.route ?: return m.roundabout?.exitAngleDeg
         rbCache?.let { (k, v) -> if (k === m) return v }
@@ -154,7 +156,17 @@ class SomeIpHud(
         val road = app.vela.ui.AppTune.text("hudRoad") ?: app.vela.core.vehicle.HudRoadText.of(latinized(maneuver))
         // No place name in a log (CLAUDE.md, location hygiene): only the text's shape.
         val shown = "type=${maneuver.type} dist=$dist roadChars=${road.length} roadBytes=${road.toByteArray().size} nonAscii=${road.any { it.code > 127 }} exitText=${road.startsWith("Exit ")} instrOnto=${maneuver.instruction.contains(" onto ")} instrExitNo=${app.vela.core.vehicle.HudRoadText.roundaboutExit(maneuver.instruction)} instrNonAscii=${maneuver.instruction.any { it.code > 127 }} storedExit=${maneuver.roundaboutExit} rbAngle=${rbAngle(s, maneuver)?.toInt()} latinNames=${roadNameLatin.size}"
-        if (shown != lastLogged) { lastLogged = shown; Log.d(TAG, "frame $shown") }
+        if (shown != lastLogged) {
+            lastLogged = shown
+            Log.d(TAG, "frame $shown")
+            // What the roundabout detector sees round this step (angles and meters only).
+            if (lastProbed !== maneuver) s.route?.let { r ->
+                lastProbed = maneuver
+                val ms = r.legs.flatMap { it.maneuvers }
+                Log.d(TAG, "rbProbe type=${maneuver.type} source=${r.source} geom=${maneuver.roundabout != null} " +
+                    app.vela.core.data.RoundaboutDetect.probe(ms, ms.indexOf(maneuver), r.polyline))
+            }
+        }
         val eta = etaFormat.format(Date(System.currentTimeMillis() + (s.remainingDuration * 1000).toLong()))
         val png = arrowPng(maneuver, rbAngle(s, maneuver))
         if (!rich) {
@@ -218,7 +230,7 @@ class SomeIpHud(
         // A roundabout with a known exit gets its own picture with the exit where it leaves; the
         // stock glyph is one circle with a straight arrow for every exit (SPEC 10.9). Traffic is
         // taken as counter-clockwise when the route does not say (Google steps carry no geometry).
-        val bmp = if (rbAngle != null && (m.type == app.vela.core.model.ManeuverType.ROUNDABOUT || m.type == app.vela.core.model.ManeuverType.EXIT_ROUNDABOUT))
+        val bmp = if (rbAngle != null && (m.roundabout != null || m.type == app.vela.core.model.ManeuverType.ROUNDABOUT || m.type == app.vela.core.model.ManeuverType.EXIT_ROUNDABOUT))
             HudRoundaboutPicture.draw(rbAngle, m.roundabout?.clockwise ?: false, GLYPH_PX)
         else app.vela.service.NavGlyphs.bitmap(m.type, GLYPH_PX, Color.TRANSPARENT)
         ByteArrayOutputStream().use { out -> bmp.compress(Bitmap.CompressFormat.PNG, 100, out); out.toByteArray() }

@@ -377,7 +377,9 @@ car's windshield glass. The arrow is Vela's own, sent as a small picture; the di
 time ride alongside it, refreshed about once a second so the glass does not blank. Under the
 distance it shows the street to turn onto, as the phone's banner names it; at a highway exit, the
 exit number and where it goes ("Exit 12B · Folsom Blvd"); at a roundabout, which exit ("3rd exit ·
-Elm St"), since the glass's roundabout symbol is the same for every exit. It uses the car's
+Elm St"), since the glass's roundabout symbol is the same for every exit. Where Google calls a
+roundabout a plain turn, Vela recognizes it from the shape of the route line, and the banner and
+the HUD show it as a roundabout with its exit. It uses the car's
 own display service with no ADB and no extra permission, and does nothing on a car that has no such
 display. It is separate from the cluster paths above.
 

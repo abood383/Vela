@@ -101,10 +101,13 @@ object DirectionsParser {
             LegTime(d, t, s.atPath(P, "traffic", 10, 0, 0).dbl())
         }.orEmpty().takeIf { it.size >= 2 && kotlin.math.abs(it.sumOf { l -> l.distanceMeters } - distance) <= distance * LEG_TILE_SLACK }.orEmpty()
 
+        // Google calls some roundabouts turns and gives none of them geometry; read it off the line
+        // so the banner and the car draw the roundabout and its exit (RoundaboutDetect).
+        val shaped = app.vela.core.data.RoundaboutDetect.annotate(maneuvers, polyline)
         return Route(
             source = app.vela.core.model.RouteSource.GOOGLE_NAMED,
             polyline = polyline.ifEmpty { listOfNotNull(start, end) },
-            legs = listOf(RouteLeg(distance, typicalDur, trafficDur, maneuvers)),
+            legs = listOf(RouteLeg(distance, typicalDur, trafficDur, shaped)),
             legTimes = legTimes,
             distanceMeters = distance,
             durationSeconds = typicalDur,
